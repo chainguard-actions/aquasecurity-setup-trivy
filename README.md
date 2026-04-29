@@ -1,5 +1,7 @@
 # aquasecurity/setup-trivy
 
+Set up your GitHub Actions workflow with a specific version of Trivy
+
 Hardened by [Chainguard](https://www.chainguard.dev) from the upstream action at [https://github.com/aquasecurity/setup-trivy](https://github.com/aquasecurity/setup-trivy).
 
 ## Versions
