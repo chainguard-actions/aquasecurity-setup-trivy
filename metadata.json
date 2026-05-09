@@ -2,5 +2,6 @@
   "owner": "aquasecurity",
   "name": "setup-trivy",
   "visibility": "internal",
-  "description": "Set up your GitHub Actions workflow with a specific version of Trivy"
+  "description": "Set up your GitHub Actions workflow with a specific version of Trivy",
+  "block_publish": false
 }
