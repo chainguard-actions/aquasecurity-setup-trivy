@@ -43,9 +43,8 @@ runs:
       env:
         INPUT_PATH: ${{ inputs.path }}
       run: |
-        # Expand $HOME in the path if present (the default value contains a literal $HOME)
-        expanded_path="${INPUT_PATH/\$HOME/$HOME}"
-        safe_path=$(printf '%s' "$expanded_path" | tr -d '\n\r')
+        safe_path=$(printf '%s' "$INPUT_PATH" | tr -d '\n\r')
+        safe_path="${safe_path//\$HOME/$HOME}"
         echo "dir=${safe_path}/trivy-bin" >> "$GITHUB_OUTPUT"
 
     ## Don't cache `latest` version
@@ -88,10 +87,10 @@ runs:
       shell: bash
       env:
         BINARY_DIR: ${{ steps.binary-dir.outputs.dir }}
-        TRIVY_VERSION: ${{ inputs.version }}
+        INPUT_VERSION: ${{ inputs.version }}
       run: |
         echo "installing Trivy binary"
-        bash ./trivy/contrib/install.sh -b "$BINARY_DIR" -c setup-trivy "$TRIVY_VERSION"
+        bash ./trivy/contrib/install.sh -b "$BINARY_DIR" -c setup-trivy "$INPUT_VERSION"
         cp -r ./trivy/contrib "$BINARY_DIR/contrib"
         rm -rf ./trivy
 
