@@ -1,7 +1,0 @@
-{
-  "owner": "aquasecurity",
-  "name": "setup-trivy",
-  "visibility": "internal",
-  "description": "Install Trivy binary from release page",
-  "block_publish": false
-}
