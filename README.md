@@ -8,7 +8,7 @@ Hardened by [Chainguard](https://www.chainguard.dev) from the upstream action at
 
 | Version | Tag | Upstream commit |
 |---------|-----|-----------------|
-| v0.2.6 | [`v0.2.6`](https://github.com/chainguard-actions/aquasecurity--setup-trivy/tree/v0.2.6) | — |
+| v0.2.6 | [`v0.2.6`](https://github.com/chainguard-actions/aquasecurity-setup-trivy/tree/v0.2.6) | — |
 
 ## Privacy
 
