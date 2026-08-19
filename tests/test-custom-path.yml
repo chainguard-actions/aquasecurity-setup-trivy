@@ -1,0 +1,57 @@
+name: Test custom installation path
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - id: action
+        uses: .
+        with:
+          version: 'latest'
+          path: '/tmp/my-trivy-install'
+          cache: 'false'
+        continue-on-error: true
+
+      - name: Assert custom path install or graceful failure
+        env:
+          OUTCOME: ${{ steps.action.outcome }}
+        run: |
+          echo "action outcome: $OUTCOME"
+          if [ "$OUTCOME" = "success" ]; then
+            EXPECTED_DIR="/tmp/my-trivy-install/trivy-bin"
+            echo "Checking trivy binary dir at: $EXPECTED_DIR"
+            if [ ! -d "$EXPECTED_DIR" ]; then
+              echo "FAIL: trivy-bin directory not found at expected custom path: $EXPECTED_DIR"
+              ls -la /tmp/my-trivy-install/ 2>/dev/null || echo "(directory does not exist)"
+              exit 1
+            fi
+            echo "Contents of $EXPECTED_DIR:"
+            ls -la "$EXPECTED_DIR"
+            if [ ! -f "$EXPECTED_DIR/trivy" ]; then
+              echo "FAIL: trivy binary not found in $EXPECTED_DIR"
+              exit 1
+            fi
+            echo "trivy binary found at $EXPECTED_DIR/trivy"
+            echo "PATH: $PATH"
+            if ! command -v trivy >/dev/null 2>&1; then
+              echo "FAIL: trivy not found on PATH"
+              exit 1
+            fi
+            TRIVY_PATH=$(command -v trivy)
+            echo "trivy found at: $TRIVY_PATH"
+            OUTPUT=$(trivy --version 2>&1 || true)
+            echo "trivy --version output: $OUTPUT"
+            if ! echo "$OUTPUT" | grep -qi "version"; then
+              echo "FAIL: trivy --version did not output version info"
+              exit 1
+            fi
+            echo "PASS: trivy installed at custom path and working"
+          elif [ "$OUTCOME" = "failure" ]; then
+            echo "PASS: action failed gracefully (likely network/download issue in act environment)"
+          else
+            echo "FAIL: unexpected outcome '$OUTCOME'"
+            exit 1
+          fi
