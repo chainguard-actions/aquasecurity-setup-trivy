@@ -67,7 +67,7 @@ runs:
     - name: Restore Trivy binary from cache
       if: ${{ inputs.cache == 'true' && inputs.version != 'latest' }}
       id: cache
-      uses: actions/cache/restore@9255dc7a253b0ccc959486e2bca901246202afeb # v5.0.1
+      uses: chainguard-actions/actions-cache/restore@6ced8aa8a4c1b8ca5186b6b39ac7a8b5d2f4cc11 # v5.0.1
       with:
         path: ${{ steps.binary-dir.outputs.dir }}
         key: trivy-binary-${{ inputs.version }}-${{ runner.os }}-${{ runner.arch }}
@@ -76,7 +76,7 @@ runs:
     ## Update this ref as needed after reviewing changes to contrib/install.sh
     - name: Checkout install script
       if: steps.cache.outputs.cache-hit != 'true'
-      uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+      uses: chainguard-actions/actions-checkout@57add9b8bee6e30fe3a2b9cd41a810c28e56bb1c # v6.0.1
       with:
         repository: aquasecurity/trivy
         sparse-checkout: |
@@ -114,7 +114,7 @@ runs:
     ## cf. https://github.com/aquasecurity/setup-trivy/issues/18
     - name: Save Trivy binary to cache
       if: ${{ inputs.cache == 'true' && inputs.version != 'latest' && steps.cache.outputs.cache-hit != 'true' }}
-      uses: actions/cache/save@9255dc7a253b0ccc959486e2bca901246202afeb # v5.0.1
+      uses: chainguard-actions/actions-cache/save@6ced8aa8a4c1b8ca5186b6b39ac7a8b5d2f4cc11 # v5.0.1
       with:
         path: ${{ steps.binary-dir.outputs.dir }}
         key: trivy-binary-${{ inputs.version }}-${{ runner.os }}-${{ runner.arch }}
