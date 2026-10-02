@@ -10,42 +10,50 @@
 
 **Harden Agent Version:** `2`
 
-Action **aquasecurity--setup-trivy/v0.2.6** was hardened automatically. 4 finding(s) were identified and resolved across 1 iteration(s).
+Action **aquasecurity--setup-trivy/v0.2.6** was hardened automatically. 7 finding(s) were identified and resolved across 1 iteration(s).
 
 ## Findings Fixed
 
 ### script-injection (severity: high)
 
-Sub-rule (a): Three run: blocks in action.yaml directly interpolate ${{ }} expressions into shell command strings, enabling script injection.
-
-1. Line 43 — `run: echo "dir=${{ inputs.path }}/trivy-bin" >> $GITHUB_OUTPUT`: the user-controlled `inputs.path` is interpolated directly into the shell command.
-
-2. Line 81 — `bash ./trivy/contrib/install.sh -b ${{ steps.binary-dir.outputs.dir }} -c setup-trivy ${{ inputs.version }}`: both `steps.binary-dir.outputs.dir` (derived from `inputs.path`) and `inputs.version` are interpolated directly as unquoted shell arguments, allowing an attacker to inject arbitrary shell metacharacters.
-
-3. Line 88 — `run: echo ${{ steps.binary-dir.outputs.dir }} >> $GITHUB_PATH`: the step output (derived from `inputs.path`) is interpolated directly and unquoted into the shell command.
-
-All three should route the values through env: variables and double-quote the expansions in the shell script.
+Sub-rule (a): The 'Binary dir' step directly interpolates `${{ inputs.path }}` inside a `run:` shell command: `echo "dir=${{ inputs.path }}/trivy-bin" >> $GITHUB_OUTPUT`. The expression is substituted by the Actions runner before the shell ever sees it, allowing an attacker-controlled value to break out of the string and inject arbitrary shell commands.
 
 Locations:
 
-- `action.yaml:43`
+- `action.yaml:40`
+
+### script-injection (severity: high)
+
+Sub-rule (a): The 'Install Trivy' step directly interpolates `${{ steps.binary-dir.outputs.dir }}` and `${{ inputs.version }}` inside `run:` shell commands: `bash ./trivy/contrib/install.sh -b ${{ steps.binary-dir.outputs.dir }} -c setup-trivy ${{ inputs.version }}` and `cp -r ./trivy/contrib ${{ steps.binary-dir.outputs.dir }}/contrib`. Both expressions are substituted before the shell parses the command, enabling shell metacharacter injection via attacker-controlled inputs.
+
+Locations:
+
 - `action.yaml:81`
-- `action.yaml:88`
+- `action.yaml:82`
+
+### script-injection (severity: high)
+
+Sub-rule (a) and (b): The 'Add Trivy binary to $GITHUB_PATH' step directly interpolates `${{ steps.binary-dir.outputs.dir }}` inside a `run:` shell command AND the value is unquoted: `echo ${{ steps.binary-dir.outputs.dir }} >> $GITHUB_PATH`. This violates both sub-rule (a) (direct expression interpolation) and sub-rule (b) (unquoted shell expansion of untrusted data).
+
+Locations:
+
+- `action.yaml:87`
 
 ### github-env-injection (severity: high)
 
-Two run: blocks write values derived from untrusted inputs to GitHub special environment files without the required sanitization step (`printf '%s' ... | tr -d '\n\r'`).
-
-1. Line 43 — `echo "dir=${{ inputs.path }}/trivy-bin" >> $GITHUB_OUTPUT`: the user-controlled `inputs.path` is written directly to $GITHUB_OUTPUT. A newline character in the input could inject additional key=value pairs into the output file.
-
-2. Line 88 — `echo ${{ steps.binary-dir.outputs.dir }} >> $GITHUB_PATH`: the step output (which is derived from `inputs.path`) is written directly to $GITHUB_PATH without sanitization, allowing newline injection that could add arbitrary entries to the runner's PATH.
-
-Both writes must be preceded by sanitization: `safe=$(printf '%s' "$VAR" | tr -d '\n\r')` before writing to the special file.
+The 'Binary dir' step writes the untrusted input `inputs.path` directly to `$GITHUB_OUTPUT` without sanitization: `echo "dir=${{ inputs.path }}/trivy-bin" >> $GITHUB_OUTPUT`. An attacker-controlled value containing newlines could inject additional key=value pairs into the output, poisoning subsequent steps that read `steps.binary-dir.outputs.*`. The required sanitization (`printf '%s' "$VAR" | tr -d '\n\r'`) is absent.
 
 Locations:
 
-- `action.yaml:43`
-- `action.yaml:88`
+- `action.yaml:40`
+
+### github-env-injection (severity: high)
+
+The 'Add Trivy binary to $GITHUB_PATH' step writes `steps.binary-dir.outputs.dir` (which derives from the untrusted `inputs.path`) directly to `$GITHUB_PATH` without sanitization: `echo ${{ steps.binary-dir.outputs.dir }} >> $GITHUB_PATH`. A newline-containing value could inject additional entries into PATH, enabling path-hijacking attacks. The required sanitization (`printf '%s' "$VAR" | tr -d '\n\r'`) is absent.
+
+Locations:
+
+- `action.yaml:87`
 
 ### static-inline-injection (severity: high)
 
@@ -71,8 +79,9 @@ Locations:
 
 **Notes:**
 
-Fixed all three run: blocks in action.yaml:
-1. 'Binary dir' step: moved inputs.path into INPUT_PATH env var, added sanitization (printf '%s' "$INPUT_PATH" | tr -d '\n\r') before writing to $GITHUB_OUTPUT.
-2. 'Install Trivy' step: moved steps.binary-dir.outputs.dir and inputs.version into BINARY_DIR and INPUT_VERSION env vars, double-quoted both in the shell script.
-3. 'Add Trivy binary to $GITHUB_PATH' step: moved steps.binary-dir.outputs.dir into BINARY_DIR env var, added sanitization before writing to $GITHUB_PATH.
+Fixed all findings in hardened/action/action.yaml:
+1. Binary dir step: Moved `${{ inputs.path }}` to `INPUT_PATH` env var; sanitized with `printf '%s' "$INPUT_PATH" | tr -d '\n\r'` before writing to `$GITHUB_OUTPUT`.
+2. Install Trivy step: Moved `${{ steps.binary-dir.outputs.dir }}` to `BINARY_DIR` and `${{ inputs.version }}` to `INPUT_VERSION` env vars; both properly double-quoted in shell commands.
+3. Add Trivy binary to $GITHUB_PATH step: Moved `${{ steps.binary-dir.outputs.dir }}` to `BINARY_DIR` env var; sanitized with `printf '%s' "$BINARY_DIR" | tr -d '\n\r'` before writing to `$GITHUB_PATH`.
+Note: The findings reference both `action.yaml` and `action.yml` but only `action.yaml` exists; all fixes were applied there.
 

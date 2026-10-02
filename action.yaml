@@ -55,8 +55,8 @@ runs:
       env:
         INPUT_PATH: ${{ inputs.path }}
       run: |
-        safe=$(printf '%s' "$INPUT_PATH" | tr -d '\n\r')
-        echo "dir=${safe}/trivy-bin" >> "$GITHUB_OUTPUT"
+        safe_path=$(printf '%s' "$INPUT_PATH" | tr -d '\n\r')
+        echo "dir=${safe_path}/trivy-bin" >> "$GITHUB_OUTPUT"
     ## Don't cache `latest` version
     - name: Check the version for caching
       if: ${{ inputs.cache == 'true' && inputs.version == 'latest' }}
@@ -106,8 +106,8 @@ runs:
       env:
         BINARY_DIR: ${{ steps.binary-dir.outputs.dir }}
       run: |
-        safe=$(printf '%s' "$BINARY_DIR" | tr -d '\n\r')
-        echo "$safe" >> "$GITHUB_PATH"
+        safe_dir=$(printf '%s' "$BINARY_DIR" | tr -d '\n\r')
+        echo "$safe_dir" >> "$GITHUB_PATH"
     ## If one of the steps after setup-trivy fails,
     ## we won't save the binary to the cache because the step after won't be run.
     ## So we need to save the binary right after installation.
